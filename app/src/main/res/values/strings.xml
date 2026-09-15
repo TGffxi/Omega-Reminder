@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Omega Reminder</string>
+    <string name="notification_channel_name">Erinnerungen</string>
+    <string name="notification_channel_description">Große visuelle Erinnerungen ohne Ton und Vibration</string>
+</resources>
