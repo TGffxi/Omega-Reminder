@@ -31,11 +31,37 @@ jobs:
       - name: Unit tests
         run: gradle :app:testDebugUnitTest
 
-      - name: Build debug APK
-        run: gradle :app:assembleDebug
+      - name: Build release APK
+        run: gradle :app:assembleRelease
+
+      - name: Restore release signing key
+        run: printf '%s' "${{ secrets.OMEGA_RELEASE_KEYSTORE_B64 }}" | base64 --decode > "$RUNNER_TEMP/omega-release.jks"
+
+      - name: Sign and verify release APK
+        env:
+          OMEGA_STORE_PASSWORD: ${{ secrets.OMEGA_RELEASE_STORE_PASSWORD }}
+          OMEGA_KEY_PASSWORD: ${{ secrets.OMEGA_RELEASE_KEY_PASSWORD }}
+        run: |
+          ZIPALIGN="$ANDROID_HOME/build-tools/35.0.0/zipalign"
+          APKSIGNER="$ANDROID_HOME/build-tools/35.0.0/apksigner"
+          UNSIGNED="app/build/outputs/apk/release/app-release-unsigned.apk"
+          ALIGNED="$RUNNER_TEMP/OmegaReminder-1.0-aligned.apk"
+          FINAL="app/build/outputs/apk/release/OmegaReminder-1.0.apk"
+
+          "$ZIPALIGN" -f -p 4 "$UNSIGNED" "$ALIGNED"
+          "$APKSIGNER" sign \
+            --ks "$RUNNER_TEMP/omega-release.jks" \
+            --ks-key-alias omega \
+            --ks-pass env:OMEGA_STORE_PASSWORD \
+            --key-pass env:OMEGA_KEY_PASSWORD \
+            --out "$FINAL" \
+            "$ALIGNED"
+
+          "$APKSIGNER" verify --verbose --print-certs "$FINAL"
+          rm -f "$RUNNER_TEMP/omega-release.jks" "$ALIGNED" "$FINAL.idsig"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: OmegaReminder-debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: OmegaReminder-1.0-final
+          path: app/build/outputs/apk/release/OmegaReminder-1.0.apk
           if-no-files-found: error
