@@ -168,6 +168,7 @@ class ReminderCoordinator(
             if (occurrence == null) {
                 val referenceMillis = maxOf(
                     reminder.createdAtEpochMillis,
+                    reminder.updatedAtEpochMillis,
                     reminder.lastCompletedAtEpochMillis ?: Long.MIN_VALUE,
                 )
                 val missed = scheduleCalculator.latestMissedOccurrence(
