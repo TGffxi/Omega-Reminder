@@ -46,7 +46,11 @@ fun HomeScreen(
                 actions = { TextButton(onClick = onSettings) { Text("Einstellungen") } },
             )
         },
-        floatingActionButton = { ExtendedFloatingActionButton(onClick = onAdd, text = { Text("+ Erinnerung") }) },
+        floatingActionButton = {
+            ExtendedFloatingActionButton(onClick = onAdd) {
+                Text("+ Erinnerung")
+            }
+        },
     ) { padding ->
         if (homeItems.isEmpty()) {
             Box(Modifier.fillMaxSize().padding(padding).padding(24.dp), contentAlignment = Alignment.Center) {
