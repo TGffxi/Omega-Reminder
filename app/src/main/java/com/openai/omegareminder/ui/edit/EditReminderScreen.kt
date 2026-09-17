@@ -30,9 +30,6 @@ fun EditReminderScreen(
         mutableStateOf(existing?.oneTimeEpochDay?.let(LocalDate::ofEpochDay) ?: LocalDate.now())
     }
     var weekdayMask by remember(existing?.id) { mutableIntStateOf(existing?.weekdayMask ?: 0) }
-    var mode by remember(existing?.id) {
-        mutableStateOf(existing?.presentationMode?.let(PresentationMode::valueOf) ?: PresentationMode.FULLSCREEN_SNOOZE)
-    }
     var enabled by remember(existing?.id) { mutableStateOf(existing?.enabled ?: true) }
     var timeDialog by remember { mutableStateOf(false) }
     var dateDialog by remember { mutableStateOf(false) }
@@ -45,7 +42,7 @@ fun EditReminderScreen(
         recurrenceType = recurrence,
         oneTimeDate = if (recurrence == RecurrenceType.ONE_TIME) date else null,
         weekdayMask = if (recurrence == RecurrenceType.WEEKDAYS) weekdayMask else 0,
-        presentationMode = mode,
+        presentationMode = PresentationMode.FULLSCREEN_SNOOZE,
     )
     val validation = validate(draft)
 
@@ -112,17 +109,10 @@ fun EditReminderScreen(
                 }
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Anzeige", style = MaterialTheme.typography.titleMedium)
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    RadioButton(selected = mode == PresentationMode.FULLSCREEN_SNOOZE, onClick = { mode = PresentationMode.FULLSCREEN_SNOOZE })
-                    Text("Groß anzeigen + Snooze (10/30/60 Min.)")
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    RadioButton(selected = mode == PresentationMode.FULLSCREEN_NO_SNOOZE, onClick = { mode = PresentationMode.FULLSCREEN_NO_SNOOZE })
-                    Text("Groß anzeigen ohne Snooze")
-                }
-            }
+            Text(
+                "Anzeige: immer Vollbild mit Erledigt sowie +10 / +30 / +60 Min.",
+                style = MaterialTheme.typography.bodyMedium,
+            )
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("Aktiv", modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)

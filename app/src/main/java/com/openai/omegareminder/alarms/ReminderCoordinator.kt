@@ -5,6 +5,7 @@ import com.openai.omegareminder.data.ReminderEntity
 import com.openai.omegareminder.data.ReminderRepository
 import com.openai.omegareminder.domain.*
 import com.openai.omegareminder.notifications.ReminderNotifier
+import com.openai.omegareminder.overlay.OverlayController
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.time.Instant
@@ -14,6 +15,7 @@ class ReminderCoordinator(
     private val repository: ReminderRepository,
     private val scheduler: AlarmScheduler,
     private val notifier: ReminderNotifier,
+    private val overlayController: OverlayController,
     private val scheduleCalculator: ScheduleCalculator = ScheduleCalculator(),
     private val occurrencePolicy: OccurrencePolicy = OccurrencePolicy(),
 ) {
@@ -31,7 +33,7 @@ class ReminderCoordinator(
             recurrenceType = draft.recurrenceType.name,
             oneTimeEpochDay = draft.oneTimeDate?.toEpochDay(),
             weekdayMask = draft.weekdayMask,
-            presentationMode = draft.presentationMode.name,
+            presentationMode = PresentationMode.FULLSCREEN_SNOOZE.name,
             createdAtEpochMillis = old?.createdAtEpochMillis ?: now.toEpochMilli(),
             updatedAtEpochMillis = now.toEpochMilli(),
             lastCompletedAtEpochMillis = old?.lastCompletedAtEpochMillis,
@@ -90,7 +92,7 @@ class ReminderCoordinator(
             nextRetryAtEpochMillis = retryAt.toEpochMilli(),
         )
         repository.saveOccurrence(occurrence)
-        notifier.show(reminder, occurrence, now)
+        present(reminder, occurrence, now)
         scheduler.scheduleRetry(reminderId, retryAt)
     }
 
@@ -105,13 +107,11 @@ class ReminderCoordinator(
             nextRetryAtEpochMillis = retryAt.toEpochMilli(),
         )
         repository.saveOccurrence(updated)
-        notifier.show(reminder, updated, now)
+        present(reminder, updated, now)
         scheduler.scheduleRetry(reminderId, retryAt)
     }
 
     suspend fun snooze(reminderId: Long, minutes: Int) = mutex.withLock {
-        val reminder = repository.getReminder(reminderId) ?: return@withLock
-        if (reminder.mode() != PresentationMode.FULLSCREEN_SNOOZE) return@withLock
         val occurrence = repository.getOccurrence(reminderId) ?: return@withLock
         val target = occurrencePolicy.snoozeUntil(Instant.now(), minutes)
         repository.saveOccurrence(
@@ -139,7 +139,7 @@ class ReminderCoordinator(
             nextRetryAtEpochMillis = retryAt.toEpochMilli(),
         )
         repository.saveOccurrence(updated)
-        notifier.show(reminder, updated, now)
+        present(reminder, updated, now)
         scheduler.scheduleRetry(reminderId, retryAt)
     }
 
@@ -188,7 +188,7 @@ class ReminderCoordinator(
                         nextRetryAtEpochMillis = retryAt.toEpochMilli(),
                     )
                     repository.saveOccurrence(recovered)
-                    notifier.show(reminder, recovered, now)
+                    present(reminder, recovered, now)
                     scheduler.scheduleRetry(reminder.id, retryAt)
                 } else if (!scheduleNextRegular(reminder, now) && reminder.schedule().recurrenceType == RecurrenceType.ONE_TIME) {
                     repository.saveReminder(reminder.copy(enabled = false, updatedAtEpochMillis = now.toEpochMilli()))
@@ -207,7 +207,7 @@ class ReminderCoordinator(
                             nextRetryAtEpochMillis = retryAt.toEpochMilli(),
                         )
                         repository.saveOccurrence(updated)
-                        notifier.show(reminder, updated, now)
+                        present(reminder, updated, now)
                         scheduler.scheduleRetry(reminder.id, retryAt)
                     }
                 }
@@ -218,11 +218,20 @@ class ReminderCoordinator(
                         nextRetryAtEpochMillis = retryAt.toEpochMilli(),
                     )
                     repository.saveOccurrence(updated)
-                    notifier.show(reminder, updated, now)
+                    present(reminder, updated, now)
                     scheduler.scheduleRetry(reminder.id, retryAt)
                 }
             }
         }
+    }
+
+    private fun present(
+        reminder: ReminderEntity,
+        occurrence: ActiveOccurrenceEntity,
+        now: Instant,
+    ) {
+        notifier.show(reminder, occurrence, now)
+        overlayController.showIfAllowed()
     }
 
     private fun scheduleNextRegular(reminder: ReminderEntity, now: Instant): Boolean {

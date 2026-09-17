@@ -11,7 +11,6 @@ import androidx.core.app.NotificationManagerCompat
 import com.openai.omegareminder.R
 import com.openai.omegareminder.data.ActiveOccurrenceEntity
 import com.openai.omegareminder.data.ReminderEntity
-import com.openai.omegareminder.domain.PresentationMode
 import com.openai.omegareminder.ui.reminder.ReminderActivity
 import java.time.Duration
 import java.time.Instant
@@ -47,13 +46,10 @@ class ReminderNotifier(private val context: Context) {
             .setSilent(true)
             .setContentIntent(contentPi)
             .addAction(0, "Erledigt", actionPendingIntent(reminder.id, ACTION_DONE, 0))
+            .addAction(0, "+10 Min", actionPendingIntent(reminder.id, ACTION_SNOOZE, 10))
+            .addAction(0, "+30 Min", actionPendingIntent(reminder.id, ACTION_SNOOZE, 30))
+            .addAction(0, "+60 Min", actionPendingIntent(reminder.id, ACTION_SNOOZE, 60))
 
-        if (reminder.mode() == PresentationMode.FULLSCREEN_SNOOZE) {
-            builder
-                .addAction(0, "+10 Min", actionPendingIntent(reminder.id, ACTION_SNOOZE, 10))
-                .addAction(0, "+30 Min", actionPendingIntent(reminder.id, ACTION_SNOOZE, 30))
-                .addAction(0, "+60 Min", actionPendingIntent(reminder.id, ACTION_SNOOZE, 60))
-        }
         if (canUseFullScreenIntent()) builder.setFullScreenIntent(contentPi, true)
         try {
             NotificationManagerCompat.from(context).notify(notificationId(reminder.id), builder.build())

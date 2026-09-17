@@ -7,6 +7,7 @@ import com.openai.omegareminder.data.OmegaDatabase
 import com.openai.omegareminder.data.ReminderRepository
 import com.openai.omegareminder.notifications.NotificationChannels
 import com.openai.omegareminder.notifications.ReminderNotifier
+import com.openai.omegareminder.overlay.OverlayController
 
 class OmegaReminderApp : Application() {
     lateinit var database: OmegaDatabase
@@ -16,6 +17,8 @@ class OmegaReminderApp : Application() {
     lateinit var alarmScheduler: AlarmScheduler
         private set
     lateinit var notifier: ReminderNotifier
+        private set
+    lateinit var overlayController: OverlayController
         private set
     lateinit var coordinator: ReminderCoordinator
         private set
@@ -27,6 +30,12 @@ class OmegaReminderApp : Application() {
         repository = ReminderRepository(database)
         alarmScheduler = AlarmScheduler(this)
         notifier = ReminderNotifier(this)
-        coordinator = ReminderCoordinator(repository, alarmScheduler, notifier)
+        overlayController = OverlayController(this)
+        coordinator = ReminderCoordinator(
+            repository,
+            alarmScheduler,
+            notifier,
+            overlayController,
+        )
     }
 }

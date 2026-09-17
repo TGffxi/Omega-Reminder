@@ -17,7 +17,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.lifecycleScope
 import com.openai.omegareminder.OmegaReminderApp
-import com.openai.omegareminder.domain.PresentationMode
 import com.openai.omegareminder.ui.theme.OmegaTheme
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
@@ -44,7 +43,11 @@ class ReminderActivity : ComponentActivity() {
         val reminderId = intent.getLongExtra(EXTRA_REMINDER_ID, -1L)
         setContent {
             OmegaTheme {
-                var model by remember { mutableStateOf<DisplayModel?>(if (isTest) DisplayModel("Test-Erinnerung", Instant.now(), PresentationMode.FULLSCREEN_SNOOZE) else null) }
+                var model by remember {
+                    mutableStateOf<DisplayModel?>(
+                        if (isTest) DisplayModel("Test-Erinnerung", Instant.now()) else null
+                    )
+                }
                 LaunchedEffect(reminderId, isTest) {
                     if (!isTest) {
                         combine(app.repository.reminders, app.repository.occurrences) { reminders, occurrences ->
@@ -53,7 +56,7 @@ class ReminderActivity : ComponentActivity() {
                             if (reminder == null || occurrence == null) {
                                 finish()
                             } else {
-                                model = DisplayModel(reminder.name, occurrence.scheduledFor(), reminder.mode())
+                                model = DisplayModel(reminder.name, occurrence.scheduledFor())
                             }
                         }
                     }
@@ -67,7 +70,6 @@ class ReminderActivity : ComponentActivity() {
                         onSnooze = { minutes ->
                             if (isTest) finish() else lifecycleScope.launch { app.coordinator.snooze(reminderId, minutes); finish() }
                         },
-                        onBack = { finish() },
                     )
                 } ?: Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
             }
@@ -80,14 +82,13 @@ class ReminderActivity : ComponentActivity() {
     }
 }
 
-data class DisplayModel(val name: String, val scheduledFor: Instant, val mode: PresentationMode)
+data class DisplayModel(val name: String, val scheduledFor: Instant)
 
 @Composable
 private fun ReminderDisplay(
     model: DisplayModel,
     onDone: () -> Unit,
     onSnooze: (Int) -> Unit,
-    onBack: () -> Unit,
 ) {
     var now by remember { mutableStateOf(Instant.now()) }
     LaunchedEffect(Unit) {
@@ -96,7 +97,7 @@ private fun ReminderDisplay(
             now = Instant.now()
         }
     }
-    BackHandler { onBack() }
+    BackHandler { /* Reminder stays visible until Erledigt or Snooze. */ }
     val scheduledLocal = model.scheduledFor.atZone(ZoneId.systemDefault())
     val overdue = max(0, Duration.between(model.scheduledFor, now).toMinutes())
 
@@ -115,15 +116,13 @@ private fun ReminderDisplay(
             Button(onClick = onDone, modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp)) {
                 Text("Erledigt", fontSize = 20.sp)
             }
-            if (model.mode == PresentationMode.FULLSCREEN_SNOOZE) {
-                Spacer(Modifier.height(18.dp))
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    listOf(10, 30, 60).forEach { minutes ->
-                        OutlinedButton(
-                            onClick = { onSnooze(minutes) },
-                            modifier = Modifier.weight(1f).heightIn(min = 56.dp),
-                        ) { Text("+$minutes Min") }
-                    }
+            Spacer(Modifier.height(18.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                listOf(10, 30, 60).forEach { minutes ->
+                    OutlinedButton(
+                        onClick = { onSnooze(minutes) },
+                        modifier = Modifier.weight(1f).heightIn(min = 56.dp),
+                    ) { Text("+$minutes Min") }
                 }
             }
         }

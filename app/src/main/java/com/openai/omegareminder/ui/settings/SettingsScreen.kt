@@ -17,9 +17,11 @@ fun SettingsScreen(
     notificationsEnabled: () -> Boolean,
     exactAlarmEnabled: () -> Boolean,
     fullScreenEnabled: () -> Boolean,
+    overlayEnabled: () -> Boolean,
     onRequestNotifications: () -> Unit,
     onOpenExactAlarmSettings: () -> Unit,
     onOpenFullScreenSettings: () -> Unit,
+    onOpenOverlaySettings: () -> Unit,
     onTestReminder: () -> Unit,
     onBack: () -> Unit,
 ) {
@@ -31,6 +33,8 @@ fun SettingsScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
     @Suppress("UNUSED_VARIABLE") val refreshKey = refresh
+
+    val overlayGranted = overlayEnabled()
 
     Scaffold(
         topBar = {
@@ -51,7 +55,15 @@ fun SettingsScreen(
             } else {
                 PermissionRow("Vollbild-Erinnerungen", true, null)
             }
+            PermissionRow("Über anderen Apps anzeigen", overlayGranted, onOpenOverlaySettings)
             HorizontalDivider()
+            if (!overlayGranted) {
+                Text(
+                    "Für die Vollbild-Anzeige über anderen Apps muss „Über anderen Apps anzeigen“ freigegeben sein.",
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
             Text(
                 "Fehlt eine Freigabe, bleiben deine Erinnerungen gespeichert. Die App verwendet dann den bestmöglichen sichtbaren Fallback.",
                 style = MaterialTheme.typography.bodyMedium,
