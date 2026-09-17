@@ -1,7 +1,7 @@
 package com.openai.omegareminder.overlay
 
 import android.app.Service
-import android.content.ColorStateList
+import android.content.res.ColorStateList
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.graphics.Color
@@ -28,7 +28,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.combine
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
